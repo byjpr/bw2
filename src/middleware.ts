@@ -25,7 +25,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Association admin routes protection
-  if (pathname.startsWith('/association/admin')) {
+  if (pathname.startsWith('/admin/association/')) {
     if (!user) {
       // Not logged in, redirect to login
       return NextResponse.redirect(new URL('/api/auth/signin', request.url));
@@ -41,7 +41,11 @@ export async function middleware(request: NextRequest) {
   }
 
   // Weaver routes protection (require any authenticated user)
-  if (pathname.startsWith('/weaver') && pathname !== '/weaver/register' && pathname !== '/weaver/apply') {
+  if (
+    pathname.startsWith('/weaver') && 
+    pathname !== '/weaver/register' && 
+    pathname !== '/weaver/apply'
+  ) {
     if (!user) {
       // Not logged in, redirect to login
       return NextResponse.redirect(new URL('/api/auth/signin', request.url));
@@ -49,13 +53,51 @@ export async function middleware(request: NextRequest) {
   }
 
   // Protected association routes
-  if (pathname.startsWith('/association') && !pathname.startsWith('/association/apply') && !pathname.startsWith('/association/admin')) {
+  if (
+    pathname.startsWith('/association') && 
+    !pathname.startsWith('/association/apply') && 
+    !pathname.startsWith('/admin/association')
+  ) {
     if (!user) {
       // Not logged in, redirect to login
       return NextResponse.redirect(new URL('/api/auth/signin', request.url));
     }
     
     // Further checks for association membership will be handled at the page level
+  }
+
+  // Events routes protection
+  if (pathname.startsWith('/events')) {
+    if (!user) {
+      // Not logged in, redirect to login
+      return NextResponse.redirect(new URL('/api/auth/signin', request.url));
+    }
+    
+    // Further checks for event access will be handled at the page level
+  }
+
+  // Applications routes protection
+  if (pathname.startsWith('/applications')) {
+    if (!user) {
+      // Not logged in, redirect to login
+      return NextResponse.redirect(new URL('/api/auth/signin', request.url));
+    }
+  }
+
+  // Messages routes protection
+  if (pathname.startsWith('/messages')) {
+    if (!user) {
+      // Not logged in, redirect to login
+      return NextResponse.redirect(new URL('/api/auth/signin', request.url));
+    }
+  }
+
+  // Settings routes protection
+  if (pathname.startsWith('/settings')) {
+    if (!user) {
+      // Not logged in, redirect to login
+      return NextResponse.redirect(new URL('/api/auth/signin', request.url));
+    }
   }
 
   return NextResponse.next();
@@ -71,5 +113,7 @@ export const config = {
     '/weaver/:path*',
     '/events/:path*',
     '/applications/:path*',
+    '/messages/:path*',
+    '/settings/:path*',
   ],
 };

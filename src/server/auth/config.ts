@@ -1,6 +1,6 @@
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { type DefaultSession, type NextAuthConfig } from "next-auth";
-import DiscordProvider from "next-auth/providers/discord";
+import Credentials from "next-auth/providers/credentials"
 
 import { db } from "~/server/db";
 
@@ -32,7 +32,17 @@ declare module "next-auth" {
  */
 export const authConfig = {
   providers: [
-    DiscordProvider,
+    Credentials({
+      credentials: {
+        username: { label: "Username" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize({ request }) {
+        const response = await fetch(request)
+        if (!response.ok) return null
+        return (await response.json()) ?? null
+      },
+    }),
     /**
      * ...add more providers here.
      *
