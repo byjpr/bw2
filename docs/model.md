@@ -86,3 +86,16 @@ Scheduled events within or outside associations.
 | `checked_in_at` | DateTime    | Timestamp when user was checked in                            |
 | `checked_in_by` | Foreign Key | Optional – user ID of the organizer/staff who checked them in |
 | `notes`         | Text        | Optional field for notes (e.g. late arrival, issue, etc.)     |
+
+---
+
+### 🔔 Notifications (future)
+
+| Field        | Type        | Notes                                 |
+| ------------ | ----------- | ------------------------------------- |
+| `id`         | UUID / PK   | Primary key                           |
+| `user_id`    | Foreign Key | Recipient                             |
+| `type`       | Enum        | `application_update`, `event_invite` |
+| `content`    | Text        | Message body                          |
+| `read_at`    | DateTime    | Null if unread                        |
+| `created_at` | DateTime    | Timestamp                             |
