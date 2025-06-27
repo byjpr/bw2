@@ -14,18 +14,6 @@ datasource db {
     url      = env("DATABASE_URL")
 }
 
-model Post {
-    id        Int      @id @default(autoincrement())
-    name      String
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-
-    createdBy   User   @relation(fields: [createdById], references: [id])
-    createdById String
-
-    @@index([name])
-}
-
 // Necessary for Next auth
 model Account {
     id                       String  @id @default(cuid())
@@ -54,21 +42,186 @@ model Session {
     user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-model User {
-    id            String    @id @default(cuid())
-    name          String?
-    email         String?   @unique
-    emailVerified DateTime?
-    image         String?
-    accounts      Account[]
-    sessions      Session[]
-    posts         Post[]
-}
-
 model VerificationToken {
     identifier String
     token      String   @unique
     expires    DateTime
 
     @@unique([identifier, token])
+}
+
+// Core Application Models
+
+model User {
+    id            String    @id @default(cuid())
+    name          String?
+    email         String?   @unique
+    emailVerified DateTime?
+    image         String?
+    
+    // Auth relations
+    accounts      Account[]
+    sessions      Session[]
+    
+    // Application relations
+    weaver                Weaver?
+    ownedAssociations     Association[]    @relation("AssociationOwner")
+    adminAssociations     Association[]    @relation("AssociationAdmins")
+    applications          Application[]    @relation("ApplicantUser")
+    approvedApplications  Application[]    @relation("ApproverUser")
+    rsvps                 RSVP[]
+    checkins              Checkin[]        @relation("CheckedInUser")
+    checkedInBy           Checkin[]        @relation("CheckedInByUser")
+    notifications         Notification[]
+}
+
+model Weaver {
+    id          String   @id @default(cuid())
+    location    String
+    createdAt   DateTime @default(now()) @map("created_at")
+
+    // Relations
+    user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    userId      String   @unique @map("user_id")
+    
+    @@map("weavers")
+}
+
+model Association {
+    id              String   @id @default(cuid())
+    location        String
+    population      Int      @default(0)
+    maxPopulation   Int      @default(30) @map("max_population")
+    
+    // Relations
+    owner           User     @relation("AssociationOwner", fields: [ownerId], references: [id])
+    ownerId         String   @map("owner_id")
+    admins          User[]   @relation("AssociationAdmins")
+    applications    Application[]
+    events          Event[]
+    
+    @@map("associations")
+}
+
+model Application {
+    id              String   @id @default(cuid())
+    createdAt       DateTime @default(now()) @map("created_at")
+    status          ApplicationStatus @default(NEW)
+    approved        Boolean  @default(false)
+    
+    // Relations
+    user            User     @relation("ApplicantUser", fields: [userId], references: [id])
+    userId          String   @map("user_id")
+    association     Association @relation(fields: [associationId], references: [id])
+    associationId   String   @map("association_id")
+    approvedBy      User?    @relation("ApproverUser", fields: [approvedById], references: [id])
+    approvedById    String?  @map("approved_by")
+    
+    @@map("applications")
+}
+
+model Event {
+    id              String   @id @default(cuid())
+    name            String
+    location        String
+    date            DateTime @db.Date
+    arrivalTime     DateTime @map("arrival_time") @db.Time()
+    arrivalRules    ArrivalRules @default(ON_TIME) @map("arrival_rules")
+    descriptionMd   String?  @map("description_md") @db.Text
+    ticketLink      String?  @map("ticket_link")
+    
+    // Relations
+    association     Association @relation(fields: [associationId], references: [id])
+    associationId   String   @map("association_id")
+    rsvps           RSVP[]
+    checkins        Checkin[]
+    
+    @@map("events")
+}
+
+model RSVP {
+    id              String   @id @default(cuid())
+    status          RSVPStatus @default(YES)
+    comment         String?  @db.Text
+    guestsCount     Int      @default(0) @map("guests_count")
+    respondedAt     DateTime @default(now()) @map("responded_at")
+    
+    // Relations
+    event           Event    @relation(fields: [eventId], references: [id])
+    eventId         String   @map("event_id")
+    user            User     @relation(fields: [userId], references: [id])
+    userId          String   @map("user_id")
+    
+    @@unique([eventId, userId])
+    @@map("rsvps")
+}
+
+model Checkin {
+    id              String   @id @default(cuid())
+    checkedInAt     DateTime @default(now()) @map("checked_in_at")
+    notes           String?  @db.Text
+    
+    // Relations
+    event           Event    @relation(fields: [eventId], references: [id])
+    eventId         String   @map("event_id")
+    user            User     @relation("CheckedInUser", fields: [userId], references: [id])
+    userId          String   @map("user_id")
+    checkedInBy     User?    @relation("CheckedInByUser", fields: [checkedInById], references: [id])
+    checkedInById   String?  @map("checked_in_by")
+    
+    @@unique([eventId, userId])
+    @@map("checkins")
+}
+
+model Notification {
+    id              String   @id @default(cuid())
+    type            NotificationType
+    content         String   @db.Text
+    readAt          DateTime? @map("read_at")
+    createdAt       DateTime @default(now()) @map("created_at")
+    
+    // Relations
+    user            User     @relation(fields: [userId], references: [id])
+    userId          String   @map("user_id")
+    
+    @@map("notifications")
+}
+
+// Enum Types
+
+enum ApplicationStatus {
+    NEW
+    UNDER_REVIEW
+    INVITED
+    APPROVED
+    KICKED
+    SELFIMMOLATE
+    
+    @@map("application_status")
+}
+
+enum ArrivalRules {
+    ON_TIME           @map("on_time")
+    BRITISH_SOCIAL    @map("british_social")
+    BRITISH_BUSINESS  @map("british_business")
+    GERMAN
+    
+    @@map("arrival_rules")
+}
+
+enum RSVPStatus {
+    YES
+    NO
+    MAYBE
+    LATE
+    CANCELLED
+    
+    @@map("rsvp_status")
+}
+
+enum NotificationType {
+    APPLICATION_UPDATE  @map("application_update")
+    EVENT_INVITE        @map("event_invite")
+    
+    @@map("notification_type")
 }
