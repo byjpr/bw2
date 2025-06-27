@@ -131,3 +131,29 @@ export const protectedProcedure = t.procedure
       },
     });
   });
+
+/**
+ * Platform admin procedure
+ * 
+ * Ensures the user is authenticated and has the PLATFORM_ADMIN role.
+ * Use this for procedures that should only be accessible to platform admins.
+ */
+export const platformAdminProcedure = protectedProcedure.use(({ ctx, next }) => {
+  if (ctx.session.user.role !== 'PLATFORM_ADMIN') {
+    throw new TRPCError({ code: "FORBIDDEN", message: "This action requires platform admin privileges" });
+  }
+  return next({ ctx });
+});
+
+/**
+ * Association admin procedure
+ * 
+ * Ensures the user is authenticated and has either ASSOCIATION_ADMIN or PLATFORM_ADMIN role.
+ * Use this for procedures that should be accessible to association admins and platform admins.
+ */
+export const associationAdminProcedure = protectedProcedure.use(({ ctx, next }) => {
+  if (ctx.session.user.role !== 'PLATFORM_ADMIN' && ctx.session.user.role !== 'ASSOCIATION_ADMIN') {
+    throw new TRPCError({ code: "FORBIDDEN", message: "This action requires admin privileges" });
+  }
+  return next({ ctx });
+});
