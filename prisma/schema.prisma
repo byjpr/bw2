@@ -58,6 +58,7 @@ model User {
     email         String?   @unique
     emailVerified DateTime?
     image         String?
+    role          UserRole  @default(USER) @map("role")
     
     // Auth relations
     accounts      Account[]
@@ -224,4 +225,12 @@ enum NotificationType {
     EVENT_INVITE        @map("event_invite")
     
     @@map("notification_type")
+}
+
+enum UserRole {
+    USER                 // Regular user
+    ASSOCIATION_ADMIN    @map("association_admin")  // Admin of an association
+    PLATFORM_ADMIN       @map("platform_admin")     // Admin of the entire platform
+    
+    @@map("user_role")
 }
